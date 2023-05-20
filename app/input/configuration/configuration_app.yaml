@@ -3,4 +3,5 @@ mail_address: "quora_duplicates_app@student.pk.edu.pl"
 mail_recipient: "saneczkaa@gmail.com"
 dataset_filename: "train.csv"
 tokens_threshold: 4
-test_size: 0.025
+similarity_threshold: 0.5
+test_size: 0.0025

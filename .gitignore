@@ -9,3 +9,8 @@ venv
 
 # drafts
 **draft.py
+
+# data
+**.csv
+**.pickle
+**.parquet

@@ -1,6 +1,7 @@
 import io
 import json
 import yaml
+import pickle
 import pandas as pd
 from pathlib import PurePath as Path
 
@@ -28,3 +29,15 @@ def save_parquet(columns, values, path):
     df_to_save = pd.DataFrame(data)
     df_to_save.to_parquet(path)
     print(f"Successfully saved to {path}")
+
+
+def save_pickle(object, path):
+    with open(path, "wb") as f:
+        pickle.dump(object, f)
+    print(f"Successfully saved to {path}")
+
+
+def load_pickle(path):
+    with open(path, "rb") as f:
+        object = pickle.load(f)
+    return object

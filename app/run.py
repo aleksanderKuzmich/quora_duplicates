@@ -1,5 +1,10 @@
-from src.utils.data_load_save import load_yaml, load_csv, save_parquet
-from src.configuration.const import path_configuration_app, path_configuration_tokenizer, path_processed_dataset
+from src.utils.data_load_save import load_yaml, load_csv, save_parquet, save_pickle
+from src.utils.get_general_metrics import get_general_metrics
+from src.configuration.const import \
+    path_configuration_app, \
+    path_configuration_tokenizer, \
+    path_processed_dataset, \
+    path_trained_model
 from src.configuration.configuration_app import ConfigurationApp
 from src.configuration.configuration_tokenizer import ConfigurationTokenizer
 from src.tokenizer import Tokenizer
@@ -15,6 +20,9 @@ class App:
         self.tokenizer = None
         self.tokenized_question_1 = None
         self.tokenized_question_2 = None
+        self.test_data = None
+        self.vectorizer = None
+        self.model = None
 
     def load_dataset(self):
         self.raw_data = load_csv(self.config_app.dataset_path)
@@ -49,13 +57,41 @@ class App:
         save_parquet(columns, values, path_processed_dataset)
 
     def train_vectorizer(self):
-        vectorizer = Vectorizer()
-        x1_train, x1_test, x2_train, x2_test, y_train, y_test = vectorizer.create_train_test_data(
+        self.vectorizer = Vectorizer()
+        x1_train, x1_test, x2_train, x2_test, y_train, y_test = Vectorizer.create_train_test_data(
             self.tokenized_question_1,
             self.tokenized_question_2,
             self.labels,
             test_size=self.config_app.test_size
         )
-        vectorizer.train(x1_train, x2_train)
-        # TODO: save model
-        # TODO: implement prediction + metrics
+        self.test_data = {"x1": x1_test, "x2": x2_test, "labels": y_test}
+        self.model = self.vectorizer.train(self.tokenized_question_1, self.tokenized_question_2)
+
+    def save_vectorizer(self):
+        save_pickle(self.model, path_trained_model)
+
+    def get_prediction(self):
+        predictions = self.vectorizer.get_predictions(
+            samples1=self.test_data["x1"],
+            samples2=self.test_data["x2"],
+            threshold=self.config_app.similarity_threshold
+        )
+        tn, fp, fn, tp = get_general_metrics(y_true=self.test_data["labels"], y_pred=predictions)
+        print(f"correctly predicted not duplicates: {tn}")
+        print(f"incorrectly predicted not duplicates: {fp}")
+        print(f"incorrectly predicted duplicates: {fn}")
+        print(f"correctly predicted duplicates: {tp}")
+
+    def run(self):
+        self.load_dataset()
+        self.process_dataset()
+        self.remove_short_samples()
+        self.save_processed_dataset()
+        self.train_vectorizer()
+        self.save_vectorizer()
+        self.get_prediction()
+
+
+if __name__ == "__main__":
+    app = App()
+    app.run()

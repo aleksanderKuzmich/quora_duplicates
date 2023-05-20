@@ -12,6 +12,7 @@ class ConfigurationApp(BaseModel):
     mail_recipient: str
     dataset_filename: str
     tokens_threshold: int
+    similarity_threshold: float
     test_size: float
     dir_root: str = str(Path(__file__).parent.parent.parent)
 
