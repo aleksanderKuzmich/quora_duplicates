@@ -10,7 +10,7 @@ class Vectorizer:
 
     @staticmethod
     def create_train_test_data(*arrays, test_size):
-        outputs = tuple(train_test_split(*arrays, test_size=test_size))
+        outputs = train_test_split(*arrays, test_size=test_size, random_state=20)
         return (*outputs, )
 
     @staticmethod
@@ -18,9 +18,11 @@ class Vectorizer:
         return [" ".join(sentence) for sentence in samples]
 
     def train(self, samples1, samples2):
+        print("Vectorizer - start train")
         str_values1 = Vectorizer._convert_samples(samples1)
         str_values2 = Vectorizer._convert_samples(samples2)
         model = self.vectorizer.fit(str_values1 + str_values2)
+        print("Vectorizer - successfully trained")
         return model
 
     def get_predictions(self, samples1, samples2, threshold):
@@ -34,5 +36,5 @@ class Vectorizer:
             if similarity > threshold:
                 prediction.append(1)
             else:
-                prediction.append(1)
+                prediction.append(0)
         return prediction

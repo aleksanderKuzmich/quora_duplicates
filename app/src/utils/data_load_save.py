@@ -31,6 +31,10 @@ def save_parquet(columns, values, path):
     print(f"Successfully saved to {path}")
 
 
+def load_parquet(path):
+    return pd.read_parquet(path)
+
+
 def save_pickle(object, path):
     with open(path, "wb") as f:
         pickle.dump(object, f)

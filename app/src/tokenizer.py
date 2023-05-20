@@ -7,9 +7,6 @@ from typing import List
 
 from src.configuration.configuration_tokenizer import ConfigurationTokenizer
 
-nltk.download("stopwords")
-nltk.download("wordnet")
-
 
 class Tokenizer:
     punctuation = "!\"#$%&'()*+, -./:;<=>?@[\]^_`{|}~"

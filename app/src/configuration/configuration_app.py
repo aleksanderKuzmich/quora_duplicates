@@ -9,16 +9,21 @@ from src.configuration.const import dir_input, path_configuration_app
 class ConfigurationApp(BaseModel):
     smtp_host: str
     mail_address: str
-    mail_recipient: str
     dataset_filename: str
     tokens_threshold: int
     similarity_threshold: float
     test_size: float
     dir_root: str = str(Path(__file__).parent.parent.parent)
+    mail_recipient: str = ""
+    mail_password: str = ""
 
     @property
     def dataset_path(self):
         return str(Path(dir_input + "/" + self.dataset_filename))
+
+    def set_env_data(self, env_data):
+        self.mail_recipient = env_data["mail_recipient"]
+        self.mail_password = env_data["mail_password"]
 
 
 if __name__ == "__main__":

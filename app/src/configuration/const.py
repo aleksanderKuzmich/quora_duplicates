@@ -14,3 +14,8 @@ path_configuration_app = str(Path(dir_input_configuration + "/" + FILE_CONFIGURA
 path_configuration_tokenizer = str(Path(dir_input_configuration + "/" + FILE_CONFIGURATION_TOKENIZER))
 path_processed_dataset = str(Path(dir_output + "/" + FILE_PROCESSED_DATASET))
 path_trained_model = str(Path(dir_output + "/" + FILE_TRAINED_MODEL))
+
+message_template = (
+    "Model has been successfully trained on {items_no} pairs and it's accuracy is {accuracy}.\n\nBest regards,\n"
+    "Quora duplicates project!"
+)

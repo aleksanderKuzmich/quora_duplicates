@@ -1,19 +1,29 @@
-from src.utils.data_load_save import load_yaml, load_csv, save_parquet, save_pickle
+import nltk
+import argparse
+
+from src.utils.data_load_save import load_yaml, load_csv, save_parquet, load_parquet, save_pickle
 from src.utils.get_general_metrics import get_general_metrics
 from src.configuration.const import \
     path_configuration_app, \
     path_configuration_tokenizer, \
     path_processed_dataset, \
-    path_trained_model
+    path_trained_model, \
+    message_template
+from src.utils.dotenv import load_env_variables
 from src.configuration.configuration_app import ConfigurationApp
 from src.configuration.configuration_tokenizer import ConfigurationTokenizer
 from src.tokenizer import Tokenizer
 from src.vectorizer import Vectorizer
+from src.mailing import send_mail
+
+nltk.download("stopwords")
+nltk.download("wordnet")
 
 
 class App:
     def __init__(self):
         self.config_app = ConfigurationApp(**load_yaml(path_configuration_app))
+        self.config_app.set_env_data(load_env_variables())
         self.config_tokenizer: ConfigurationTokenizer = ConfigurationTokenizer(**load_yaml(path_configuration_tokenizer))
         self.raw_data = None
         self.labels = None
@@ -23,11 +33,18 @@ class App:
         self.test_data = None
         self.vectorizer = None
         self.model = None
+        self.accuracy = None
 
     def load_dataset(self):
         self.raw_data = load_csv(self.config_app.dataset_path)
         self.raw_data = self.raw_data.dropna(axis=0).reset_index(drop=True)
         self.labels = self.raw_data.is_duplicate.tolist()
+
+    def load_processed_dataset(self):
+        processed_dataset = load_parquet(path_processed_dataset)
+        self.tokenized_question_1 = processed_dataset.question1.tolist()
+        self.tokenized_question_2 = processed_dataset.question2.tolist()
+        self.labels = processed_dataset.is_duplicate.tolist()
 
     def process_dataset(self):
         self.tokenizer = Tokenizer(self.config_tokenizer)
@@ -41,10 +58,11 @@ class App:
         empty_ids.extend(Tokenizer.get_empty_ids(self.tokenized_question_1, threshold=self.config_app.tokens_threshold))
         empty_ids.extend(Tokenizer.get_empty_ids(self.tokenized_question_2, threshold=self.config_app.tokens_threshold))
         empty_ids = list(set(empty_ids))
-        print(f"Amount of pairs where len of sample < {self.config_app.tokens_threshold} is {empty_ids}")
+        print(f"Amount of pairs where len of tokens < {self.config_app.tokens_threshold} is {len(empty_ids)}")
 
         Tokenizer.remove_empty_sentences(self.tokenized_question_1, empty_ids)
         Tokenizer.remove_empty_sentences(self.tokenized_question_2, empty_ids)
+        Tokenizer.remove_empty_sentences(self.labels, empty_ids)
         # run additional check
         empty_ids = []
         empty_ids.extend(Tokenizer.get_empty_ids(self.tokenized_question_1, threshold=self.config_app.tokens_threshold))
@@ -81,17 +99,50 @@ class App:
         print(f"incorrectly predicted not duplicates: {fp}")
         print(f"incorrectly predicted duplicates: {fn}")
         print(f"correctly predicted duplicates: {tp}")
+        self.accuracy = f"{round((tn+tp)/(tn+fp+fn+tp), 4)*100}%"
 
-    def run(self):
-        self.load_dataset()
-        self.process_dataset()
-        self.remove_short_samples()
-        self.save_processed_dataset()
+    def send_results_mail(self):
+        subject = "Pipeline results"
+        message = message_template.format(items_no=len(self.tokenized_question_1), accuracy=self.accuracy)
+        send_mail(
+            sender=self.config_app.mail_address,
+            recipient=self.config_app.mail_recipient,
+            password=self.config_app.mail_password,
+            subject=subject,
+            body=message
+        )
+        print(f"Mail has been sent to {self.config_app.mail_recipient}")
+
+    def run(self, processed=None):
+        if processed:
+            self.load_processed_dataset()
+        else:
+            self.load_dataset()
+            self.process_dataset()
+            self.remove_short_samples()
+            self.save_processed_dataset()
+
         self.train_vectorizer()
         self.save_vectorizer()
         self.get_prediction()
+        self.send_results_mail()
+
+    def run_with_processed_dataset(self):
+        self.load_processed_dataset()
+        self.train_vectorizer()
+        self.save_vectorizer()
+        self.get_prediction()
+        self.send_results_mail()
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pd", action="store_true")
+    args = parser.parse_args()
     app = App()
-    app.run()
+    if args.pd:
+        print("App - will run with processed dataset")
+        app.run(processed=True)
+    else:
+        print("App - will process dataset")
+        app.run()
