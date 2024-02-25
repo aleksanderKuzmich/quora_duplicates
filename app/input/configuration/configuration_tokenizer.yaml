@@ -1,0 +1,5 @@
+min_token_len: 2
+remove_stopwords: False
+case_mode: "all"
+lemmatize: False
+ngrams_size: 2

@@ -1,0 +1,20 @@
+# IDE
+.git
+.idea
+.vscode
+
+# Python
+**/__pyache__
+**/__pycache__/**
+venv
+
+# drafts
+**draft.py
+
+# secrets
+.env
+
+# data
+**.csv
+**.pickle
+**.parquet
